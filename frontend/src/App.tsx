@@ -1,67 +1,32 @@
-import { Routes, Route, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
-import Navbar from './components/Navbar'
-import Toast, { ToastMessage } from './components/Toast'
-import Modal from './components/Modal'
-import UploadPage from './pages/Upload'
-import ResultsPage from './pages/Results'
-import QualityPage from './pages/Quality'
-import TriagePage from './pages/Triage'
-import RiskPage from './pages/Risk'
-import ReportsPage from './pages/Reports'
-import HistoryPage from './pages/History'
-import AdminPage from './pages/Admin'
+import { Route, Routes } from 'react-router-dom';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import LandingPage from './pages/LandingPage';
+import UploadPage from './pages/UploadPage';
+import ResultsPage from './pages/ResultsPage';
+import HistoryPage from './pages/HistoryPage';
+import HistoryDetailPage from './pages/HistoryDetailPage';
+import AboutPage from './pages/AboutPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 
-function App() {
-  const [toasts, setToasts] = useState<ToastMessage[]>([])
-  const [aboutOpen, setAboutOpen] = useState(false)
-  const navigate = useNavigate()
-
-  const addToast = (type: 'success' | 'error', message: string) => {
-    const id = `${Date.now()}-${Math.random()}`
-    setToasts((prev) => [...prev, { id, type, message }])
-    setTimeout(() => dismissToast(id), 4000)
-  }
-
-  const dismissToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }
-
-  const toggleTheme = () => {
-    document.body.classList.toggle('dark')
-  }
-
-  const handleAbout = () => setAboutOpen(true)
-
-  const onRunComplete = (runId: number) => {
-    localStorage.setItem('lastRunId', String(runId))
-    navigate(`/results/${runId}`)
-  }
-
+export default function App() {
   return (
-    <div>
-      <Navbar onToggleTheme={toggleTheme} onAbout={handleAbout} />
-      <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      <Header />
+      <main className="flex-1 px-6 py-10 max-w-6xl mx-auto w-full">
         <Routes>
-          <Route path="/" element={<UploadPage onToast={addToast} onRunComplete={onRunComplete} />} />
-          <Route path="/results/:runId" element={<ResultsPage onToast={addToast} />} />
-          <Route path="/quality/:runId" element={<QualityPage onToast={addToast} />} />
-          <Route path="/triage/:runId" element={<TriagePage onToast={addToast} />} />
-          <Route path="/risk/:runId" element={<RiskPage onToast={addToast} />} />
-          <Route path="/reports/:runId" element={<ReportsPage onToast={addToast} />} />
-          <Route path="/history" element={<HistoryPage onToast={addToast} />} />
-          <Route path="/admin" element={<AdminPage onToast={addToast} />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/results" element={<ResultsPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/history/:requestId" element={<HistoryDetailPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
         </Routes>
-      </div>
-      <Toast messages={toasts} onDismiss={dismissToast} />
-      <Modal isOpen={aboutOpen} title="About" onClose={() => setAboutOpen(false)}>
-        <p className="text-sm">
-          Murmur Screen provides educational screening support only. It does not provide medical
-          diagnosis or replace clinical evaluation.
-        </p>
-      </Modal>
+      </main>
+      <Footer />
     </div>
-  )
+  );
 }
-
-export default App
