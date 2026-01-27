@@ -1,4 +1,6 @@
 {
+  "feature_type": "log-mel",
   "sr": 2000,
-  "feature_type": "log-mel"
+  "window_sec": 2.0,
+  "hop_sec": 1.0
 }
