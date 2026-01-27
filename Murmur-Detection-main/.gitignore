@@ -7,3 +7,7 @@ frontend/dist/
 .env
 .venv/
 backend/.venv/
+artifacts/
+backend/artifacts/
+*.pkl
+*.db
