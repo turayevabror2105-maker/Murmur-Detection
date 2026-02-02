@@ -111,8 +111,8 @@ def create_app(db_url: str | None = None) -> FastAPI:
         return SessionLocal()
 
     @app.get("/api/health")
-    def health_check():
-        return {"status": "ok"}
+    def health():
+        return {"ok": "True"}
 
     @app.post("/api/predict", response_model=PredictResponse)
     async def predict(
@@ -232,10 +232,10 @@ def create_app(db_url: str | None = None) -> FastAPI:
     @app.get("/api/history")
     def history(patient_id: str | None = None):
         db = get_db()
-        try:
+        try:[ njo]
             entries = list_history(db, patient_id)
             return [
-                {
+                { 
                     "request_id": entry.request_id,
                     "created_at": entry.created_at.isoformat(),
                     "patient_id": entry.patient_id,
