@@ -229,6 +229,7 @@ def create_app(db_url: str | None = None) -> FastAPI:
 
         return response_payload
 from fastapi import HTTPException
+import json
 @app.get("/api/history")
 def history(patient_id: str | None = None):
     db = get_db()
@@ -246,7 +247,7 @@ def history(patient_id: str | None = None):
             for entry in entries
             ]
         except Exception as e:
-            raise HTTPEexception(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
         finally:
             db.close()
 
