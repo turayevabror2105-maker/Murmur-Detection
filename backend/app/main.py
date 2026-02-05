@@ -230,21 +230,20 @@ def create_app(db_url: str | None = None) -> FastAPI:
         return response_payload
 from fastapi import HTTPException
 @app.get("/api/history")
-    def history(patient_id: str | None = None):
-        db = get_db()
-        
-        try:
-            entries = list_history(db, patient_id)
-            return [
-                { 
-                    "request_id": entry.request_id,
-                    "created_at": entry.created_at.isoformat(),
-                    "patient_id": entry.patient_id,
-                    "visit_label": entry.visit_label,
-                    "auscultation_site": entry.auscultation_site,
-                    "summary": json.loads(entry.summary),
-                }
-                for entry in entries
+def history(patient_id: str | None = None):
+    db = get_db()
+    try:
+        entries = list_history(db, patient_id)
+        return [
+            { 
+                "request_id": entry.request_id,
+                "created_at": entry.created_at.isoformat(),
+                "patient_id": entry.patient_id,
+                "visit_label": entry.visit_label,
+                "auscultation_site": entry.auscultation_site,
+                "summary": json.loads(entry.summary),
+            }
+            for entry in entries
             ]
         except Exception as e:
             raise HTTPEexception(status_code=500, detail=str(e))
