@@ -230,13 +230,14 @@ def create_app(db_url: str | None = None) -> FastAPI:
         return response_payload
 from fastapi import HTTPException
 import json
+
 @app.get("/api/history")
 def history(patient_id: str | None = None):
     db = get_db()
     try:
-        entries = list_history(db, patient_id)
+        entries = list_history(db, patient_id) or []
         return [
-            { 
+            {
                 "request_id": entry.request_id,
                 "created_at": entry.created_at.isoformat(),
                 "patient_id": entry.patient_id,
@@ -245,11 +246,11 @@ def history(patient_id: str | None = None):
                 "summary": json.loads(entry.summary),
             }
             for entry in entries
-            ]
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        finally:
-            db.close()
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
 
     @app.get("/api/history/{request_id}")
     def history_detail(request_id: str):
