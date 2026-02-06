@@ -7,8 +7,6 @@ import ResultsPage from './pages/ResultsPage';
 import HistoryPage from './pages/HistoryPage';
 import HistoryDetailPage from './pages/HistoryDetailPage';
 import AboutPage from './pages/AboutPage';
-import PrivacyPage from './pages/PrivacyPage';
-import TermsPage from './pages/TermsPage';
 
 export default function App() {
   return (
@@ -22,8 +20,6 @@ export default function App() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/history/:requestId" element={<HistoryDetailPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
         </Routes>
       </main>
       <Footer />
