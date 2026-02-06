@@ -95,7 +95,7 @@ AUSCULTATION_SITES = {"Aortic", "Pulmonic", "Tricuspid", "Mitral", "Unknown"}
 
 
 def create_app(db_url: str | None = None) -> FastAPI:
-    app = FastAPI(title="Murmur Screening Demo", version="1.0")
+    app = FastAPI(title="Murmur Screening", version="1.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["https://murmur-detection-frontend.onrender.com"],
