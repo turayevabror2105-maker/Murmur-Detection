@@ -1,6 +1,6 @@
 export default function AboutPage() {
   return (
-  
+    <>
       <div className="neo-card">
         <h3 className="text-xl font-semibold text-emerald-200">Baseline Timing</h3>
         <p className="text-slate-300 mt-2">
@@ -48,5 +48,6 @@ export default function AboutPage() {
           the README lists open datasets such as PhysioNet/CinC 2016 with their licensing terms.
         </p>
       </div>
-
-      }
+      </>
+  );
+}
