@@ -228,9 +228,9 @@ def create_app(db_url: str | None = None) -> FastAPI:
             db.close()
 
         return response_payload
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
 import json
-
+app = FastAPI()
 @app.get("/api/history")
 def history(patient_id: str | None = None):
     db = get_db()
