@@ -109,7 +109,7 @@ def create_app(db_url: str | None = None) -> FastAPI:
 
     def get_db() -> Session:
         return SessionLocal()
-
+    return app  
     @app.get("/api/health")
     def health():
         return {"ok": "True"}
