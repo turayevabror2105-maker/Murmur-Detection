@@ -2,9 +2,9 @@ from datetime import datetime, timezone
 import json
 import uuid
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.calibration.temperature import CALIBRATION_EXPLANATION, TemperatureScaler
@@ -90,15 +90,19 @@ SAFE_ADVICE = [
     "For any health concerns, consult a qualified clinician.",
 ]
 
-
 AUSCULTATION_SITES = {"Aortic", "Pulmonic", "Tricuspid", "Mitral", "Unknown"}
 
 
 def create_app(db_url: str | None = None) -> FastAPI:
     app = FastAPI(title="Murmur Screening", version="1.0")
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["https://murmur-detection-frontend.onrender.com"],
+        allow_origins=[
+            "https://murmur-detection-frontend.onrender.com",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -107,12 +111,17 @@ def create_app(db_url: str | None = None) -> FastAPI:
     SessionLocal = get_session_maker(db_url)
     init_db(db_url)
 
-    def get_db() -> Session:
-        return SessionLocal()
-    return app  
+    # Proper DB dependency
+    def get_db():
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
     @app.get("/api/health")
     def health():
-        return {"ok": "True"}
+        return {"ok": True}
 
     @app.post("/api/predict", response_model=PredictResponse)
     async def predict(
@@ -120,6 +129,7 @@ def create_app(db_url: str | None = None) -> FastAPI:
         auscultation_site: str = Form(...),
         patient_id: str = Form(...),
         visit_label: str | None = Form(None),
+        db: Session = Depends(get_db),
     ):
         if not is_wav_filename(file.filename):
             raise HTTPException(status_code=400, detail="Only WAV files are supported.")
@@ -134,7 +144,6 @@ def create_app(db_url: str | None = None) -> FastAPI:
 
         model_result = run_model(audio.samples, audio.sample_rate)
         segments = sliding_window_segments(audio.samples, audio.sample_rate)
-
         quality = compute_quality(audio.samples, audio.sample_rate)
 
         temperature = TemperatureScaler()
@@ -148,6 +157,7 @@ def create_app(db_url: str | None = None) -> FastAPI:
         _, uncertainty_score = mc_dropout_uncertainty(model, model_result["features"], passes=20)
 
         murmur_label = "murmur" if calibrated_prob >= 0.5 else "normal"
+
         systolic_prob = model_result["systolic_prob"]
         diastolic_prob = model_result["diastolic_prob"]
         if max(systolic_prob, diastolic_prob) < 0.55:
@@ -192,7 +202,10 @@ def create_app(db_url: str | None = None) -> FastAPI:
             },
             "risk": {
                 "screening_concern_level": risk.screening_concern_level,
-                "rationale": f"{risk.rationale} Explainability note: model focused on mid-frequency bands during high-probability segments.",
+                "rationale": (
+                    f"{risk.rationale} Explainability note: model focused on "
+                    "mid-frequency bands during high-probability segments."
+                ),
             },
             "safe_advice": SAFE_ADVICE + [CALIBRATION_EXPLANATION],
             "segments": segments,
@@ -210,31 +223,23 @@ def create_app(db_url: str | None = None) -> FastAPI:
             "quality_score": quality.quality_score_0_100,
         }
 
-        db = get_db()
-        try:
-            create_analysis(
-                db,
-                Analysis(
-                    request_id=response_payload["request_id"],
-                    created_at=datetime.fromisoformat(response_payload["created_at"]),
-                    patient_id=patient_id,
-                    visit_label=visit_label,
-                    auscultation_site=auscultation_site,
-                    summary=json.dumps(summary),
-                    response_json=response_payload,
-                ),
-            )
-        finally:
-            db.close()
+        create_analysis(
+            db,
+            Analysis(
+                request_id=response_payload["request_id"],
+                created_at=datetime.fromisoformat(response_payload["created_at"]),
+                patient_id=patient_id,
+                visit_label=visit_label,
+                auscultation_site=auscultation_site,
+                summary=json.dumps(summary),
+                response_json=response_payload,
+            ),
+        )
 
         return response_payload
-from fastapi import FastAPI, HTTPException
-import json
-app = FastAPI()
-@app.get("/api/history")
-def history(patient_id: str | None = None):
-    db = get_db()
-    try:
+
+    @app.get("/api/history")
+    def history(patient_id: str | None = None, db: Session = Depends(get_db)):
         entries = list_history(db, patient_id) or []
         return [
             {
@@ -247,32 +252,20 @@ def history(patient_id: str | None = None):
             }
             for entry in entries
         ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        db.close()
 
     @app.get("/api/history/{request_id}")
-    def history_detail(request_id: str):
-        db = get_db()
-        try:
-            entry = get_analysis(db, request_id)
-            if not entry:
-                raise HTTPException(status_code=404, detail="Entry not found.")
-            return entry.response_json
-        finally:
-            db.close()
+    def history_detail(request_id: str, db: Session = Depends(get_db)):
+        entry = get_analysis(db, request_id)
+        if not entry:
+            raise HTTPException(status_code=404, detail="Entry not found.")
+        return entry.response_json
 
     @app.delete("/api/history/{request_id}")
-    def delete_history(request_id: str):
-        db = get_db()
-        try:
-            deleted = delete_analysis(db, request_id)
-            if not deleted:
-                raise HTTPException(status_code=404, detail="Entry not found.")
-            return {"deleted": True}
-        finally:
-            db.close()
+    def delete_history(request_id: str, db: Session = Depends(get_db)):
+        deleted = delete_analysis(db, request_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Entry not found.")
+        return {"deleted": True}
 
     return app
 
